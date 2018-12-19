@@ -8,6 +8,12 @@ student
 
 学生
 
+ ***support software***
+ + after office 2010
+ + after wps 2013
+
+
+
 Send this file to student, and collecte after they finish their job.
 
 把这个文件发个学生们，等他们都填写完了再收回来

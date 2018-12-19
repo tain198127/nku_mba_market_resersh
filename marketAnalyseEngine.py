@@ -74,7 +74,7 @@ class MarketAnalyseEngine:
     def __random_name():
         """
         获取一个随机名字
-        :return:
+        :return: 随机姓名
         """
         name = random.choice(family_name)
         name = name + random.choice(first_names)
@@ -97,8 +97,8 @@ class MarketAnalyseEngine:
     def __read_personal_info(self, excel_path):
         """
         读取个人信息数组
-        :param excel_path:
-        :return:个人信息数组
+        :param excel_path: 文件路径
+        :return:一份个人信息数组
         """
         table = self.__open_table(excel_path, 0)
         gander = table.cell_value(0, 1)
@@ -120,8 +120,8 @@ class MarketAnalyseEngine:
     def __read_detail_info(self, excel_path):
         """
         读取详细信息矩阵
-        :param excel_path:
-        :return:详细信息矩阵
+        :param excel_path: 文件路径
+        :return: 一份详细信息矩阵
         """
         detail = []
         table = self.__open_table(excel_path, 1)
@@ -158,7 +158,7 @@ class MarketAnalyseEngine:
         """
         读取汇总信息
         :param excel_path:  excel 文件路径
-        :return: 汇总信息
+        :return: 一份汇总信息
         """
         table = self.__open_table(excel_path, 2)
         info = table.row_values(2)
@@ -171,7 +171,7 @@ class MarketAnalyseEngine:
     def read_excels():
         """
         读取文件
-        :return:
+        :return:统计文档的文件名列表
         """
         excels = []
         logging.debug("begin--------------" + sys._getframe().f_code.co_name)
@@ -191,11 +191,11 @@ class MarketAnalyseEngine:
     def __writ_into_excel(file_name, person_info_ary, detail_matrix_ary, asm_info_ary):
         """
         写入excel
-        :param file_name:
-        :param person_info:
-        :param detail_info:
-        :param asm_info:
-        :return:
+        :param file_name: 文件路径
+        :param person_info_ary: 个人信息数组
+        :param detail_matrix_ary: 个人使用app的详情矩阵的数组
+        :param asm_info_ary: 个人的汇总信息数组
+        :return: 保存的文件路径
         """
         excel_file = os.path.join(os.getcwd(), file_name)
 
@@ -228,11 +228,12 @@ class MarketAnalyseEngine:
         for asm_info in asm_info_ary:
             sheet3.append(asm_info)
         wb.save(excel_file)
+        return excel_file
 
     def merge_into_excel(self, file_name):
         """
-        主函数
-        :return:
+        主函数，合并脚本所在目录的素有xlsx文件，集成了读取、汇总和写入操作
+        :return: 合并后的文件地址
         """
         excels = self.read_excels()
         personal_merge_info = []
@@ -255,7 +256,8 @@ class MarketAnalyseEngine:
             detail_merge_info.append(detail_info)
             assemb_merge_info.append(assemb_info)
             # 写入
-        self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info)
+        merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info)
+        return merge_file_path
 
 
 engin = MarketAnalyseEngine()

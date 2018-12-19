@@ -2,6 +2,12 @@
 
 # 1. user_behaviour_statistics.xlsx
 
+## who should read this(谁应该读)
+
+student
+
+学生
+
 Send this file to student, and collecte after they finish their job.
 
 把这个文件发个学生们，等他们都填写完了再收回来
@@ -42,15 +48,21 @@ It will collecting data automatically.
 
 # 2. marketAnalyseEngine.py
 
-## who should read this
+## who should read this(谁应该读)
 
 Professor,Assistant professor,Teacher, Faculty
 
+(教授、助教、讲师、教职员工等)
+
 ## what it done
+
+(这是干嘛的)
 
 It will collection all xlsx files which are in same path, collected from student and merge into a asm.xlsx
 
-## how
+他会自动收集跟这个脚本在同一级目录的从同学们那里收集来的xlsx文件，并且把最终结果都放到一个叫做asm.xlsx中。
+
+## how(怎么用)
 
 ``` shell
 python marketAnalyseEngine
@@ -58,4 +70,5 @@ python marketAnalyseEngine
 
 And you will get a new file "asm.xlsx"
 
+这样你就得到一个asm.xlsx了
 

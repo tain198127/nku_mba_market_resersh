@@ -9,8 +9,8 @@ student
 学生
 
  ***support software***
- + after office 2010
- + after wps 2013
+ + after office 2010（office 2010之后的版本）
+ + after wps 2013(wps 2013之后的版本)
 
 
 

@@ -37,6 +37,7 @@ The second sheet, input more **your** detail infomation about app on your mobile
 And, the consequence column you colud input "是"(menas yes) or nothing, but you **must** select one "是" at least in same color cloumns each row, else,the last colunm will show a error. 
 
 后面的表格，你只需要选择“是”就行了（也就是说，可以不用选否），但是**注意**，每行中，同一个颜色的列中，**至少**要一个选了“是”。否则最后一列会检查出错误。
+但是最后一个栏目中 ***“统计-平均”*** 中关于 ***"邮件网络"*** 和 ***"社群网络"*** 都必须选上，否则会检查出错。
 
 You will get a error signal if you choose duplicate apps.
 

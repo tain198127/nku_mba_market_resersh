@@ -227,7 +227,7 @@ class MarketAnalyseEngine:
                           '	圣诞节',
                           '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	', '邮件网络',
                           '	社群网络',
-                          '	平均每周使用多少次', '	平均为此APP付款金额(元/周)	', '平均每周使用时长(分钟/周)'])
+                          '	平均每周使用多少次', '	平均为此APP付款金额(元/周)	', '平均每周使用时长(分钟/周)','其他价值信息'])
         detail_row_num = 0
         for detail_matrix in detail_matrix_ary:
             for detail_info in detail_matrix:

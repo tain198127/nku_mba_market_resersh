@@ -347,16 +347,10 @@ class MarketAnalyseEngine:
             for i in range(k):
                 plt.plot(centroid[i][0], centroid[i][1], mark[label[i]], markersize=12)
             plt.show()
-        # a = numpy.array([10, 11, 9, 23, 21, 11, 45, 20, 11, 12]).reshape(-1, 1)
-        # kde = KernelDensity(kernel='gaussian', bandwidth=3).fit(a)
-        # s = numpy.linspace(0, 50)
-        # e = kde.score_samples(s.reshape(-1, 1))
-        # plt.plot(s, e)
-        # plt.show()
 
 
 engin = MarketAnalyseEngine()
 # for i in range(1,100):
 #     print(engin.random_name())
-# engin.kMeanCluster()
-docs = engin.merge_into_excel("asm.xlsx", True)
+engin.kMeanCluster()
+# docs = engin.merge_into_excel("asm.xlsx", True)

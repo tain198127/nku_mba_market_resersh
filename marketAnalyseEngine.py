@@ -3,9 +3,11 @@ import os
 import random
 import sys
 
+import matplotlib.pyplot as plt
 import numpy
 import openpyxl
 import xlrd
+from sklearn import cluster
 
 logging.basicConfig(level=logging.FATAL)
 family_name = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
@@ -182,7 +184,7 @@ class MarketAnalyseEngine:
             for file in files:
                 logging.debug("filename:[{}]".format(file))
                 logging.debug("ext:[{}]".format(os.path.splitext(file)[1]))
-                if os.path.splitext(file)[1] == ".xlsx":
+                if os.path.splitext(file)[1] == ".xlsx" and os.path.splitext(file)[0] != 'user_behaviour_statistics':
                     excel_path = os.path.join(root, file)
                     excels.append(excel_path)
         return excels
@@ -212,7 +214,8 @@ class MarketAnalyseEngine:
             sheet1.append(person_info)
         sheet2 = wb.create_sheet(title="detail info", index=1)
         sheet2.append(
-            ['姓名','app名称','6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00', '在家', '上班路上-公交',
+            ['姓名', 'app名称', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00', '在家',
+             '上班路上-公交',
              '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风', '工作日',
              '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦', '	圣诞节',
              '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	', '邮件网络', '	社群网络',
@@ -221,19 +224,23 @@ class MarketAnalyseEngine:
             for detail_info in detail_matrix:
                 sheet2.append(detail_info.tolist())
         sheet3 = wb.create_sheet(title="assembly info", index=2)
-        sheet3.append(['姓名','6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00', '在家', '上班路上-公交',
-             '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风', '工作日',
-             '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦', '	圣诞节',
-             '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
+        sheet3.append(['姓名', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00', '在家',
+                       '上班路上-公交',
+                       '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风',
+                       '工作日',
+                       '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦',
+                       '	圣诞节',
+                       '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
         for asm_info in asm_info_ary:
             sheet3.append(asm_info)
         wb.save(excel_file)
         return excel_file
 
-    def merge_into_excel(self, file_name):
+    def _getMergeMatrix(self, is_normalize=False):
         """
-        主函数，合并脚本所在目录的素有xlsx文件，集成了读取、汇总和写入操作
-        :return: 合并后的文件地址
+        获取汇总矩阵
+        :param is_normalize: 是否要做一般化处理
+        :return: 个人信息矩阵、详情矩阵、汇总矩阵
         """
         excels = self.read_excels()
         personal_merge_info = []
@@ -255,14 +262,80 @@ class MarketAnalyseEngine:
             personal_merge_info.append(personal_info)
             detail_merge_info.append(detail_info)
             assemb_merge_info.append(assemb_info)
-            # 写入
+        if is_normalize:
+            return self.normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
+        else:
+            return personal_merge_info, detail_merge_info, assemb_merge_info
+
+    def merge_into_excel(self, file_name, is_normalization):
+        """
+        主函数，合并脚本所在目录的素有xlsx文件，集成了读取、汇总和写入操作
+        :return: 合并后的文件地址
+        """
+        personal_merge_info, detail_merge_info, assemb_merge_info = self._getMergeMatrix(is_normalization)
         merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info)
         return merge_file_path
 
+    def normalization(self, person, detail, asm):
+        """
+        一般化处理
+        :param person: 个人信息矩阵
+        :param detail:  详情矩阵
+        :param asm: 统计矩阵
+        :return: 详情矩阵做0-1化，统计矩阵做百分比化
+        """
+        nor_detail = numpy.array(detail)
+        nor_detail[nor_detail == '是'] = 1
+        nor_detail[nor_detail == '否'] = 0
+        nor_detail[nor_detail == ''] = 0
+        logging.debug(nor_detail)
+
+        nor_asm = []
+        for row in asm:
+            name = numpy.split(row, [1, 7])[0]
+            schedule = numpy.split(row, [1, 7])[1].astype(float)
+            surrounding = numpy.split(row, [7, 15])[1].astype(float)
+            weather = numpy.split(row, [15, 22])[1].astype(float)
+            holiday = numpy.split(row, [22, 34])[1].astype(float)
+            classification = numpy.split(row, [34, 41])[1].astype(float)
+            nor_row = numpy.hstack((name,
+                                    schedule / numpy.sum(schedule),
+                                    surrounding / numpy.sum(surrounding),
+                                    weather / numpy.sum(weather),
+                                    holiday / numpy.sum(holiday),
+                                    classification / numpy.sum(classification))
+                                   )
+            nor_asm.append(nor_row.tolist())
+
+        return person, nor_detail, nor_asm
+
+    def kMeanCluster(self):
+        person, detail, asm = self._getMergeMatrix(True)
+        logging.debug(asm)
+        data = numpy.delete(asm, 0, axis=1)
+        logging.debug(data)
+        logging.debug(numpy.delete(detail, range(0, 1), axis=1))
+
+        # print(data)
+        for k in range(7, 8):
+            numSample = len(data)
+            centroid, label, inertia = cluster.k_means(data, k)
+            logging.debug(centroid, label, inertia)
+            mark = ['or', 'ob', 'og', 'ok', '^r', '+r', 'sr', 'dr', '<r', 'pr']
+            for i in range(numSample):
+                plt.plot(data[i][0], data[i][0], mark[label[i]])
+            mark = ['Dr', 'Db', 'Dg', 'Dk', '^b', '+b', 'sb', 'db', '<b', 'pb']
+            for i in range(k):
+                plt.plot(centroid[i][0], centroid[i][1], mark[label[i]], markersize=12)
+            plt.show()
+        # a = numpy.array([10, 11, 9, 23, 21, 11, 45, 20, 11, 12]).reshape(-1, 1)
+        # kde = KernelDensity(kernel='gaussian', bandwidth=3).fit(a)
+        # s = numpy.linspace(0, 50)
+        # e = kde.score_samples(s.reshape(-1, 1))
+        # plt.plot(s, e)
+        # plt.show()
+
 
 engin = MarketAnalyseEngine()
-docs = engin.merge_into_excel("asm.xlsx")
-# for file in docs:
-#
-#     engin.read_detail_info(file)
-#     engin.read_assemble_info(file)
+# engin.kMeanCluster()
+docs = engin.merge_into_excel("asm.xlsx",True)

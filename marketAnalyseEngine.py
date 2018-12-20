@@ -74,7 +74,7 @@ first_names = [
 
 class MarketAnalyseEngine:
     @staticmethod
-    def __random_name():
+    def random_name():
         """
         获取一个随机名字
         :return: 随机姓名
@@ -250,7 +250,7 @@ class MarketAnalyseEngine:
         detail_merge_info = []
         assemb_merge_info = []
         for f in excels:
-            random_name = self.__random_name()
+            random_name = self.random_name()
             personal_info = self.__read_personal_info(f)
             detail_info = self.__read_detail_info(f)
             assemb_info = self.__read_assemble_info(f)
@@ -347,5 +347,7 @@ class MarketAnalyseEngine:
 
 
 engin = MarketAnalyseEngine()
-engin.kMeanCluster()
+for i in range(1,100):
+    print(engin.random_name())
+# engin.kMeanCluster()
 # docs = engin.merge_into_excel("asm.xlsx",True)

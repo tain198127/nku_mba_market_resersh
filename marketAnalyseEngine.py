@@ -6,8 +6,8 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy
-import openpyxl
 import xlrd
+import xlsxwriter
 from sklearn import cluster
 
 logging.basicConfig(level=logging.DEBUG)
@@ -209,34 +209,43 @@ class MarketAnalyseEngine:
         logging.debug(detail_matrix_ary)
         logging.debug(asm_info_ary)
 
-        wb = openpyxl.Workbook()
-        sheet1 = wb.create_sheet(title="personal info", index=0)
-        sheet1.append(["name", "gander", "age", "local", "edu", "marital", "industry", "career", "lowest_consumption",
-                       "highest_comsumption", "devie"])
-        for person_info in person_info_ary:
-            sheet1.append(person_info)
-        sheet2 = wb.create_sheet(title="detail info", index=1)
-        sheet2.append(
-            ['姓名', 'app名称', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00', '在家',
-             '上班路上-公交',
-             '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风', '工作日',
-             '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦', '	圣诞节',
-             '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	', '邮件网络', '	社群网络',
-             '	平均每周使用多少次', '	平均为此APP付款金额(元/周)	', '平均每周使用时长(分钟/周)'])
+        wb = xlsxwriter.Workbook(excel_file, {'strings_to_numbers': True})
+        sheet1 = wb.add_worksheet(name="personal info")
+        sheet1.write_row('A1', data=["name", "gander", "age", "local", "edu", "marital", "industry", "career",
+                                     "lowest_consumption",
+                                     "highest_comsumption", "devie"])
+        for row_num, person_info in enumerate(person_info_ary):
+            sheet1.write_row(row_num + 1, 0, person_info)
+        sheet2 = wb.add_worksheet(name="detail info")
+        sheet2.write_row('A1',
+                         ['姓名', 'app名称', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00',
+                          '23:00~6:00', '在家',
+                          '上班路上-公交',
+                          '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风',
+                          '工作日',
+                          '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦',
+                          '	圣诞节',
+                          '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	', '邮件网络',
+                          '	社群网络',
+                          '	平均每周使用多少次', '	平均为此APP付款金额(元/周)	', '平均每周使用时长(分钟/周)'])
+        detail_row_num = 0
         for detail_matrix in detail_matrix_ary:
             for detail_info in detail_matrix:
-                sheet2.append(detail_info.tolist())
-        sheet3 = wb.create_sheet(title="assembly info", index=2)
-        sheet3.append(['姓名', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00', '在家',
-                       '上班路上-公交',
-                       '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风',
-                       '工作日',
-                       '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦',
-                       '	圣诞节',
-                       '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
-        for asm_info in asm_info_ary:
-            sheet3.append(asm_info)
-        wb.save(excel_file)
+                detail_row_num = detail_row_num + 1
+                sheet2.write_row(detail_row_num, 0, detail_info.tolist())
+        sheet3 = wb.add_worksheet(name="assembly info")
+        sheet3.write_row('A1',
+                         ['姓名', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00',
+                          '在家',
+                          '上班路上-公交',
+                          '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾', '台风',
+                          '工作日',
+                          '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦',
+                          '	圣诞节',
+                          '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
+        for row_num, asm_info in enumerate(asm_info_ary):
+            sheet3.write_row(row_num + 1, 0, asm_info)
+        wb.close()
         return excel_file
 
     def _getMergeMatrix(self, is_normalize=False):
@@ -289,9 +298,9 @@ class MarketAnalyseEngine:
         :return: 详情矩阵做0-1化，统计矩阵做百分比化
         """
         nor_detail = numpy.array(detail)
-        nor_detail[nor_detail == '是'] = 1
-        nor_detail[nor_detail == '否'] = 0
-        nor_detail[nor_detail == ''] = 0
+        nor_detail[nor_detail == '是'] = int(1)
+        nor_detail[nor_detail == '否'] = int(0)
+        nor_detail[nor_detail == ''] = int(0)
         # 清洗detail
         logging.debug(nor_detail)
 
@@ -347,7 +356,7 @@ class MarketAnalyseEngine:
 
 
 engin = MarketAnalyseEngine()
-for i in range(1,100):
-    print(engin.random_name())
+# for i in range(1,100):
+#     print(engin.random_name())
 # engin.kMeanCluster()
-# docs = engin.merge_into_excel("asm.xlsx",True)
+docs = engin.merge_into_excel("asm.xlsx", True)

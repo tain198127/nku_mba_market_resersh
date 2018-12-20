@@ -184,7 +184,7 @@ class MarketAnalyseEngine:
             for file in files:
                 logging.debug("filename:[{}]".format(file))
                 logging.debug("ext:[{}]".format(os.path.splitext(file)[1]))
-                if os.path.splitext(file)[1] == ".xlsx" and os.path.splitext(file)[0] != 'user_behaviour_statistics':
+                if os.path.splitext(file)[1] == ".xlsx" and os.path.splitext(file)[0] not in ['user_behaviour_statistics','asm']:
                     excel_path = os.path.join(root, file)
                     excels.append(excel_path)
         return excels
@@ -199,8 +199,9 @@ class MarketAnalyseEngine:
         :param asm_info_ary: 个人的汇总信息数组
         :return: 保存的文件路径
         """
-        excel_file = os.path.join(os.getcwd(), file_name)
-
+        excel_file = os.path.join(os.path.dirname(os.getcwd()) , file_name)
+        if os.path.exists(excel_file):
+            os.remove(excel_file)
         logging.debug(excel_file)
         logging.debug(person_info_ary)
         logging.debug(detail_matrix_ary)
@@ -263,7 +264,7 @@ class MarketAnalyseEngine:
             detail_merge_info.append(detail_info)
             assemb_merge_info.append(assemb_info)
         if is_normalize:
-            return self.normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
+            return self._normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
         else:
             return personal_merge_info, detail_merge_info, assemb_merge_info
 
@@ -272,11 +273,12 @@ class MarketAnalyseEngine:
         主函数，合并脚本所在目录的素有xlsx文件，集成了读取、汇总和写入操作
         :return: 合并后的文件地址
         """
+
         personal_merge_info, detail_merge_info, assemb_merge_info = self._getMergeMatrix(is_normalization)
         merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info)
         return merge_file_path
 
-    def normalization(self, person, detail, asm):
+    def _normalization(self, person, detail, asm):
         """
         一般化处理
         :param person: 个人信息矩阵
@@ -314,7 +316,6 @@ class MarketAnalyseEngine:
         logging.debug(asm)
         data = numpy.delete(asm, 0, axis=1)
         logging.debug(data)
-        logging.debug(numpy.delete(detail, range(0, 1), axis=1))
 
         # print(data)
         for k in range(7, 8):

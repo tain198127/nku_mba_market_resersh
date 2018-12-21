@@ -1,5 +1,4 @@
 import logging
-import math
 import os
 import random
 import sys
@@ -10,9 +9,7 @@ import sklearn.preprocessing
 import xlrd
 import xlsxwriter
 from sklearn import cluster
-from scipy.stats import gmean
-from sklearn.neighbors import KNeighborsClassifier
-import pandas
+from mpl_toolkits.mplot3d import Axes3D
 
 logging.basicConfig(level=logging.DEBUG)
 family_name = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
@@ -101,7 +98,7 @@ class MarketAnalyseEngine:
             data = xlrd.open_workbook(excel_path)
             sheet = data.sheets()[sheet_idx]
         except Exception as e:
-            print(e,excel_path,sheet_idx)
+            print(e, excel_path, sheet_idx)
         return sheet
 
     def __read_personal_info(self, excel_path):
@@ -427,20 +424,46 @@ class MarketAnalyseEngine:
         person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm.xlsx'))
         # person, detail, asm = self._normalization(person, detail, asm)
         km_cluster = sklearn.cluster.KMeans();
-        data = numpy.array(asm).astype(float)[:,33:40].tolist()
+        data = numpy.array(asm).astype(float)[:, 33:40].tolist()
         schedule = numpy.array(asm).astype(float)[:, 0:6].tolist()
+        weather = numpy.array(asm).astype(float)[:, 6:14].tolist()
         actiondata = self.matrix_shirk(data)
         schedule_data = self.matrix_shirk(schedule)
-        testdata = numpy.hstack((schedule_data,actiondata))
+        weather_data = self.matrix_shirk(weather)
+        testdata = numpy.hstack((schedule_data, actiondata, weather_data))
         print(testdata)
         result = km_cluster.fit_predict(testdata)
 
-        print("predicting result:",len(result),result)
+        print("predicting result:", len(result), result)
 
-        plt.scatter(testdata[:,0],testdata[:,1],c=result)
+        fig = plt.figure()  # 定义新的三维坐标轴
+        ax3 = plt.axes(projection='3d')
+
+        # 定义三维数据
+        # z = numpy.linspace(0, 13, 1000)
+        # x = 5 * numpy.sin(z)
+        # y = 5 * numpy.cos(z)
+        # zd = 13 * numpy.random.random(100)
+        # xd = 5 * numpy.sin(zd)
+        # yd = 5 * numpy.cos(zd)
+        # xx = numpy.arange(-10, 10, 100)
+        # yy = numpy.arange(-10, 10, 100)
+        # X, Y = numpy.meshgrid(x, y)
+        # Z = numpy.sin(X) + numpy.cos(Y)
+
+        plt.scatter(testdata[:, 0], testdata[:, 1], testdata[:, 2], c=result)
+
+        # ax3.plot_surface(X, Y, Z,rstride = 1, cstride = 1, cmap='rainbow')
+        # 作图
+        # ax3.plot_surface(testdata[:,0],testdata[:,1],testdata[:,2], cmap='rainbow')
+        # ax3.contour(X,Y,Z, zdim='z',offset=-2，cmap='rainbow)   #等高线图，要设置offset，为Z的最小值
         plt.show()
 
-    def matrix_shirk(self,matrix):
+        # plt.scatter(testdata[:,0],testdata[:,1],testdata[:,2],c=result)
+        # plt.legend()
+        # plt.show()
+
+    def matrix_shirk(self, matrix):
         """
         将高维数组通过KNN距离运算，变成1维的距离数组
         :param matrix:
@@ -448,9 +471,8 @@ class MarketAnalyseEngine:
         """
         gm = []
         for row in numpy.array(matrix):
-            gm.append([numpy.sqrt(numpy.sum(row**2))])
+            gm.append([numpy.sqrt(numpy.sum(row ** 2))])
         return gm
-
 
     def read_asm_2_matrix(self, excel_path):
         # todo

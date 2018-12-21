@@ -6,6 +6,7 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy
+import sklearn.preprocessing
 import xlrd
 import xlsxwriter
 from sklearn import cluster
@@ -192,7 +193,7 @@ class MarketAnalyseEngine:
         return excels
 
     @staticmethod
-    def __writ_into_excel(file_name, person_info_ary, detail_matrix_ary, asm_info_ary):
+    def __writ_into_excel(file_name, person_info_ary, detail_matrix_ary, asm_info_ary, nor_asm_info_ary=None):
         """
         写入excel
         :param file_name: 文件路径
@@ -227,7 +228,7 @@ class MarketAnalyseEngine:
                           '	圣诞节',
                           '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	', '邮件网络',
                           '	社群网络',
-                          '	平均每周使用多少次', '	平均为此APP付款金额(元/周)	', '平均每周使用时长(分钟/周)','其他价值信息'])
+                          '	平均每周使用多少次', '	平均为此APP付款金额(元/周)	', '平均每周使用时长(分钟/周)', '其他价值信息'])
         detail_row_num = 0
         for detail_matrix in detail_matrix_ary:
             for detail_info in detail_matrix:
@@ -245,10 +246,26 @@ class MarketAnalyseEngine:
                           '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
         for row_num, asm_info in enumerate(asm_info_ary):
             sheet3.write_row(row_num + 1, 0, asm_info)
+        if nor_asm_info_ary:
+            sheet4 = wb.add_worksheet(name="normalization assembly info")
+            sheet4.write_row('A1',
+                             ['姓名', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00',
+                              '23:00~6:00',
+                              '在家',
+                              '上班路上-公交',
+                              '上班路上-私家车', '旅游', '办公室', '出差-短途', '出差-飞机', '出差-高铁等', '晴天', '阴天', '刮风', '下雨', '下雪', '雾霾',
+                              '台风',
+                              '工作日',
+                              '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节',
+                              '	元旦',
+                              '	圣诞节',
+                              '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
+            for row_num, asm_info in enumerate(nor_asm_info_ary):
+                sheet4.write_row(row_num + 1, 0, asm_info)
         wb.close()
         return excel_file
 
-    def _getMergeMatrix(self, is_normalize=False):
+    def _get_merge_matrix(self, is_normalize=True):
         """
         获取汇总矩阵
         :param is_normalize: 是否要做一般化处理
@@ -275,19 +292,36 @@ class MarketAnalyseEngine:
             detail_merge_info.append(detail_info)
             assemb_merge_info.append(assemb_info)
         if is_normalize:
-            return self._normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
+            personal_info, nor_detail_info, nor_asm_info = self._normalization(personal_merge_info, detail_merge_info,
+                                                                               assemb_merge_info)
+            return personal_merge_info, nor_detail_info, assemb_merge_info, nor_asm_info
         else:
-            return personal_merge_info, detail_merge_info, assemb_merge_info
+            return personal_merge_info, detail_merge_info, assemb_merge_info,None
 
-    def merge_into_excel(self, file_name, is_normalization):
+    def merge_into_excel(self, file_name, is_normalization=True):
         """
         主函数，合并脚本所在目录的素有xlsx文件，集成了读取、汇总和写入操作
         :return: 合并后的文件地址
         """
 
-        personal_merge_info, detail_merge_info, assemb_merge_info = self._getMergeMatrix(is_normalization)
-        merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info)
+        personal_merge_info, detail_merge_info, assemb_merge_info, nor_asm_info = self._get_merge_matrix(
+            is_normalization)
+        merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info,
+                                                 nor_asm_info)
         return merge_file_path
+
+    @staticmethod
+    def _min_max_scale(matrix, type=0):
+        """
+        手动归一化处理
+        :type:0是大小值归一化。1是均值方差归一化
+        :param matrix:矩阵
+        :return:
+        """
+        if type == 1:
+            return (matrix - matrix.min()) / (matrix.max() - matrix.min())
+        else:
+            return (matrix - matrix.mean()) / matrix.std()
 
     def _normalization(self, person, detail, asm):
         """
@@ -305,6 +339,20 @@ class MarketAnalyseEngine:
         logging.debug(nor_detail)
 
         nor_asm = []
+
+        asm_matrix = numpy.asmatrix(asm)
+        print(asm_matrix)
+        minmax = sklearn.preprocessing.MinMaxScaler()
+
+        std_schedule = self._min_max_scale(asm_matrix[:, 1:7].astype(float), 1)
+        std_surrounding = self._min_max_scale(asm_matrix[:, 7:15].astype(float), 1)
+        std_weather = self._min_max_scale(asm_matrix[:, 15: 22].astype(float), 1)
+        std_holiday = self._min_max_scale(asm_matrix[:, 22: 34].astype(float), 1)
+        std_classification = self._min_max_scale(asm_matrix[:, 34:41].astype(float), 1)
+
+        asm_matrix = numpy.hstack(
+            (asm_matrix[:, 0:1], std_schedule, std_surrounding, std_weather, std_holiday, std_classification)).tolist()
+
         for row in asm:
             name = numpy.split(row, [1, 7])[0]
             schedule = numpy.split(row, [1, 7])[1].astype(float)
@@ -323,16 +371,35 @@ class MarketAnalyseEngine:
             # numpy实现，百分比化
             nor_asm.append(nor_row.tolist())
 
-        return person, nor_detail, nor_asm
+        return person, nor_detail, asm_matrix
 
-    def kMeanCluster(self):
+    def k_mean_cluster_pytorch(self):
+        # todo
+        """
+        使用pytorch获取聚类
+        :return:
+        """
+        # person, detail, asm = self._get_merge_matrix(True)
+        # data = numpy.asmatrix(asm)[:, 1:7]
+
+    def read_asm_2_matrix(self, excel_path):
+        # todo
+        """
+        读取汇总的文件到矩阵
+        :excel_path:文件路径
+        :return:
+        """
+        table = xlrd.open_workbook(excel_path)
+
+    def k_mean_cluster(self):
+        # todo
         """
         K-MEAN分类
         :return:
         """
-        person, detail, asm = self._getMergeMatrix(True)
+        person, detail, asm,nor_asm = self._get_merge_matrix()
         # logging.debug(asm)
-        data = numpy.asmatrix(asm)[:, 1:7]
+        data = numpy.asmatrix(nor_asm)[:, 1:7]
         logging.debug(data)
 
         # print(data)
@@ -352,5 +419,5 @@ class MarketAnalyseEngine:
 engin = MarketAnalyseEngine()
 # for i in range(1,100):
 #     print(engin.random_name())
-engin.kMeanCluster()
-# docs = engin.merge_into_excel("asm.xlsx", True)
+engin.k_mean_cluster()
+# docs = engin.merge_into_excel("asm.xlsx")

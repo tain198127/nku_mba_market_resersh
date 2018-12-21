@@ -10,6 +10,8 @@ import sklearn.preprocessing
 import xlrd
 import xlsxwriter
 from sklearn import cluster
+from scipy.stats import gmean
+from sklearn.neighbors import KNeighborsClassifier
 import pandas
 
 logging.basicConfig(level=logging.DEBUG)
@@ -423,15 +425,31 @@ class MarketAnalyseEngine:
         :return:
         """
         person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm.xlsx'))
-        person, detail, asm = self._normalization(person, detail, asm)
+        # person, detail, asm = self._normalization(person, detail, asm)
         km_cluster = sklearn.cluster.KMeans();
         data = numpy.array(asm).astype(float)[:,33:40].tolist()
-        result = km_cluster.fit_predict(data)
+        schedule = numpy.array(asm).astype(float)[:, 0:6].tolist()
+        actiondata = self.matrix_shirk(data)
+        schedule_data = self.matrix_shirk(schedule)
+        testdata = numpy.hstack((schedule_data,actiondata))
+        print(testdata)
+        result = km_cluster.fit_predict(testdata)
 
         print("predicting result:",len(result),result)
 
-        plt.scatter(data[:,0],data[:,1],c=result)
+        plt.scatter(testdata[:,0],testdata[:,1],c=result)
         plt.show()
+
+    def matrix_shirk(self,matrix):
+        """
+        将高维数组通过KNN距离运算，变成1维的距离数组
+        :param matrix:
+        :return:
+        """
+        gm = []
+        for row in numpy.array(matrix):
+            gm.append([numpy.sqrt(numpy.sum(row**2))])
+        return gm
 
 
     def read_asm_2_matrix(self, excel_path):
@@ -493,6 +511,6 @@ engin = MarketAnalyseEngine()
 # print(person)
 # print(detail)
 # print(asm)
-# engin.k_mean_cluster_pytorch()
-engin.k_mean_cluster()
+engin.k_mean_cluster_pytorch()
+# engin.k_mean_cluster()
 # docs = engin.merge_into_excel("asm.xlsx")

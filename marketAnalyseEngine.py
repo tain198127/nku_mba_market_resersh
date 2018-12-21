@@ -10,8 +10,9 @@ import sklearn.preprocessing
 import xlrd
 import xlsxwriter
 from sklearn import cluster
+import pandas
 
-logging.basicConfig(level=logging.FATAL)
+logging.basicConfig(level=logging.DEBUG)
 family_name = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
                '何', '吕', '施', '张', '孔', '曹', '严', '华', '金', '魏', '陶', '姜', '戚', '谢', '邹', '喻', '柏', '水', '窦', '章',
                '云', '苏', '潘', '葛', '奚', '范', '彭', '郎', '鲁', '韦', '昌', '马', '苗', '凤', '花', '方', '俞', '任', '袁', '柳',
@@ -94,8 +95,11 @@ class MarketAnalyseEngine:
         :param sheet_idx:  第几个sheet，从0开始
         :return: sheet对象
         """
-        data = xlrd.open_workbook(excel_path)
-        sheet = data.sheets()[sheet_idx]
+        try:
+            data = xlrd.open_workbook(excel_path)
+            sheet = data.sheets()[sheet_idx]
+        except Exception as e:
+            print(e,excel_path,sheet_idx)
         return sheet
 
     def __read_personal_info(self, excel_path):
@@ -321,12 +325,16 @@ class MarketAnalyseEngine:
         detail_merge_info = []
         assemb_merge_info = []
         for f in excels:
-            personal_info = self.__read_personal_info(f)
-            detail_info = self.__read_detail_info(f)
-            assemb_info = self.__read_assemble_info(f)
-            personal_merge_info.append(personal_info)
-            detail_merge_info.append(detail_info)
-            assemb_merge_info.append(assemb_info)
+            try:
+                personal_info = self.__read_personal_info(f)
+                detail_info = self.__read_detail_info(f)
+                assemb_info = self.__read_assemble_info(f)
+                personal_merge_info.append(personal_info)
+                detail_merge_info.append(detail_info)
+                assemb_merge_info.append(assemb_info)
+            except Exception as e:
+                print(e)
+
         if is_normalize:
             return self._normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
         else:
@@ -376,16 +384,18 @@ class MarketAnalyseEngine:
         print(asm_matrix)
         minmax = sklearn.preprocessing.MinMaxScaler()
 
-        std_schedule = self._min_max_scale(asm_matrix[:, 0:6].astype(float), 1)
-        std_surrounding = self._min_max_scale(asm_matrix[:, 6:14].astype(float), 1)
-        std_weather = self._min_max_scale(asm_matrix[:, 14: 21].astype(float), 1)
-        std_holiday = self._min_max_scale(asm_matrix[:, 21: 33].astype(float), 1)
-        std_classification = self._min_max_scale(asm_matrix[:, 33:40].astype(float), 1)
+        nor_type = 2
+
+        std_schedule = self._min_max_scale(asm_matrix[:, 0:6].astype(float), nor_type)
+        std_surrounding = self._min_max_scale(asm_matrix[:, 6:14].astype(float), nor_type)
+        std_weather = self._min_max_scale(asm_matrix[:, 14: 21].astype(float), nor_type)
+        std_holiday = self._min_max_scale(asm_matrix[:, 21: 33].astype(float), nor_type)
+        std_classification = self._min_max_scale(asm_matrix[:, 33:40].astype(float), nor_type)
 
         asm_matrix = numpy.hstack(
             (std_schedule, std_surrounding, std_weather, std_holiday, std_classification)).tolist()
 
-        for row in asm:
+        for row in numpy.asarray(asm):
             schedule = numpy.split(row, [0, 6])[1].astype(float)
             surrounding = numpy.split(row, [6, 14])[1].astype(float)
             weather = numpy.split(row, [14, 21])[1].astype(float)
@@ -401,6 +411,9 @@ class MarketAnalyseEngine:
             # numpy实现，百分比化
             nor_asm.append(nor_row.tolist())
 
+        if nor_type == 2:
+            asm_matrix = nor_asm
+
         return person, nor_detail, asm_matrix
 
     def k_mean_cluster_pytorch(self):
@@ -409,8 +422,17 @@ class MarketAnalyseEngine:
         使用pytorch获取聚类
         :return:
         """
-        # person, detail, asm = self._get_merge_matrix(True)
-        # data = numpy.asmatrix(asm)[:, 1:7]
+        person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm.xlsx'))
+        person, detail, asm = self._normalization(person, detail, asm)
+        km_cluster = sklearn.cluster.KMeans();
+        data = numpy.array(asm).astype(float)[:,33:40].tolist()
+        result = km_cluster.fit_predict(data)
+
+        print("predicting result:",len(result),result)
+
+        plt.scatter(data[:,0],data[:,1],c=result)
+        plt.show()
+
 
     def read_asm_2_matrix(self, excel_path):
         # todo
@@ -435,8 +457,8 @@ class MarketAnalyseEngine:
         for i in range(0, sheet2.nrows):
             asm_info.append(sheet2.row_values(i))
 
-        return numpy.squeeze(numpy.asmatrix(person_info)[1:, :]), numpy.squeeze(
-            numpy.asmatrix(detail_info)[1:, :]), numpy.squeeze(numpy.asmatrix(asm_info)[1:, :])
+        return numpy.squeeze(numpy.asmatrix(person_info)[1:, 1:]), numpy.squeeze(
+            numpy.asmatrix(detail_info)[1:, 1:]), numpy.squeeze(numpy.asmatrix(asm_info)[1:, 1:])
 
     def k_mean_cluster(self):
         # todo
@@ -447,12 +469,12 @@ class MarketAnalyseEngine:
         person, detail, asm = self._get_merge_matrix()
         person, detail, asm = self._normalization(person, detail, asm)
         # logging.debug(asm)
-        data = numpy.asmatrix(asm)[:, 1:7]
+        data = numpy.asmatrix(asm)
         logging.debug(data)
 
         # print(data)
-        for k in range(2, math.ceil(data.shape[1] / 2)):
-            numSample = len(data)
+        for k in range(2, 8):
+            numSample = len(asm)
             centroid, label, inertia = cluster.k_means(data, k)
             logging.debug(centroid, label, inertia)
             mark = ['or', 'ob', 'og', 'ok', '^r', '+r', 'sr', 'dr', '<r', 'pr']
@@ -471,5 +493,6 @@ engin = MarketAnalyseEngine()
 # print(person)
 # print(detail)
 # print(asm)
-# engin.k_mean_cluster()
-docs = engin.merge_into_excel("asm.xlsx")
+# engin.k_mean_cluster_pytorch()
+engin.k_mean_cluster()
+# docs = engin.merge_into_excel("asm.xlsx")

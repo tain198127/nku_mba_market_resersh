@@ -192,7 +192,7 @@ class MarketAnalyseEngine:
                     excels.append(excel_path)
         return excels
 
-    def _add_rdname_2_detail(self,detail_matrix_ary,random_name):
+    def _add_rdname_2_detail(self, detail_matrix_ary, random_name):
         detail_matrix_tmp = []
         name_idx = 0
         for detail_row in detail_matrix_ary:
@@ -213,21 +213,22 @@ class MarketAnalyseEngine:
         :return: 保存的文件路径
         """
         rows = numpy.asmatrix(person_info_ary).shape[0]
-        random_name=[]
-        for i in range(0,rows):
+        random_name = []
+        for i in range(0, rows):
             random_name.append([self.random_name()])
         excel_file = os.path.join(os.path.dirname(os.getcwd()), file_name)
         if os.path.exists(excel_file):
             os.remove(excel_file)
 
-        person_info_ary, nor_detail, nor_asm_info_ary = self._normalization(person_info_ary,detail_matrix_ary,asm_info_ary)
+        person_info_ary, nor_detail, nor_asm_info_ary = self._normalization(person_info_ary, detail_matrix_ary,
+                                                                            asm_info_ary)
 
         logging.debug(excel_file)
-        person_info_ary = numpy.hstack((random_name,person_info_ary)).tolist()
+        person_info_ary = numpy.hstack((random_name, person_info_ary)).tolist()
 
-        detail_matrix_ary = self._add_rdname_2_detail(detail_matrix_ary,random_name)
+        detail_matrix_ary = self._add_rdname_2_detail(detail_matrix_ary, random_name)
 
-        nor_detail_ary = self._add_rdname_2_detail(nor_detail,random_name)
+        nor_detail_ary = self._add_rdname_2_detail(nor_detail, random_name)
 
         asm_info_ary = numpy.hstack((random_name, asm_info_ary)).tolist()
         nor_asm_info_ary = numpy.hstack((random_name, nor_asm_info_ary)).tolist()
@@ -320,7 +321,6 @@ class MarketAnalyseEngine:
         detail_merge_info = []
         assemb_merge_info = []
         for f in excels:
-
             personal_info = self.__read_personal_info(f)
             detail_info = self.__read_detail_info(f)
             assemb_info = self.__read_assemble_info(f)
@@ -328,7 +328,7 @@ class MarketAnalyseEngine:
             detail_merge_info.append(detail_info)
             assemb_merge_info.append(assemb_info)
         if is_normalize:
-            return self._normalization(personal_merge_info, detail_merge_info,assemb_merge_info)
+            return self._normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
         else:
             return personal_merge_info, detail_merge_info, assemb_merge_info
 
@@ -338,7 +338,7 @@ class MarketAnalyseEngine:
         :return: 合并后的文件地址
         """
 
-        personal_merge_info, detail_merge_info, assemb_merge_info = self._get_merge_matrix( False)
+        personal_merge_info, detail_merge_info, assemb_merge_info = self._get_merge_matrix(False)
         merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info)
         return merge_file_path
 
@@ -421,7 +421,21 @@ class MarketAnalyseEngine:
         """
         wb = xlrd.open_workbook(excel_path)
 
+        person_info = []
+        detail_info = []
+        asm_info = []
+        sheet0 = wb.sheet_by_index(0)
+        for i in range(0, sheet0.nrows):
+            person_info.append(sheet0.row_values(i))
 
+        sheet1 = wb.sheet_by_index(1)
+        for i in range(0, sheet1.nrows):
+            detail_info.append(sheet1.row_values(i))
+        sheet2 = wb.sheet_by_index(2)
+        for i in range(0, sheet2.nrows):
+            asm_info.append(sheet2.row_values(i))
+
+        return numpy.squeeze(numpy.asmatrix(person_info)[1:,:]) , numpy.squeeze(numpy.asmatrix(detail_info)[1:,:]), numpy.squeeze(numpy.asmatrix(asm_info)[1:,:])
 
     def k_mean_cluster(self):
         # todo
@@ -430,6 +444,7 @@ class MarketAnalyseEngine:
         :return:
         """
         person, detail, asm = self._get_merge_matrix()
+        person, detail, asm = self._normalization(person, detail, asm)
         # logging.debug(asm)
         data = numpy.asmatrix(asm)[:, 1:7]
         logging.debug(data)
@@ -451,5 +466,9 @@ class MarketAnalyseEngine:
 engin = MarketAnalyseEngine()
 # for i in range(1,100):
 #     print(engin.random_name())
+person,detail,asm = engin.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm.xlsx'))
+print(person)
+print(detail)
+print(asm)
 # engin.k_mean_cluster()
-docs = engin.merge_into_excel("asm.xlsx")
+# docs = engin.merge_into_excel("asm.xlsx")

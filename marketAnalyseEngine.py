@@ -11,7 +11,7 @@ import xlrd
 import xlsxwriter
 from sklearn import cluster
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.FATAL)
 family_name = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
                '何', '吕', '施', '张', '孔', '曹', '严', '华', '金', '魏', '陶', '姜', '戚', '谢', '邹', '喻', '柏', '水', '窦', '章',
                '云', '苏', '潘', '葛', '奚', '范', '彭', '郎', '鲁', '韦', '昌', '马', '苗', '凤', '花', '方', '俞', '任', '袁', '柳',
@@ -435,7 +435,8 @@ class MarketAnalyseEngine:
         for i in range(0, sheet2.nrows):
             asm_info.append(sheet2.row_values(i))
 
-        return numpy.squeeze(numpy.asmatrix(person_info)[1:,:]) , numpy.squeeze(numpy.asmatrix(detail_info)[1:,:]), numpy.squeeze(numpy.asmatrix(asm_info)[1:,:])
+        return numpy.squeeze(numpy.asmatrix(person_info)[1:, :]), numpy.squeeze(
+            numpy.asmatrix(detail_info)[1:, :]), numpy.squeeze(numpy.asmatrix(asm_info)[1:, :])
 
     def k_mean_cluster(self):
         # todo
@@ -466,9 +467,9 @@ class MarketAnalyseEngine:
 engin = MarketAnalyseEngine()
 # for i in range(1,100):
 #     print(engin.random_name())
-person,detail,asm = engin.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm.xlsx'))
-print(person)
-print(detail)
-print(asm)
+# person, detail, asm = engin.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm.xlsx'))
+# print(person)
+# print(detail)
+# print(asm)
 # engin.k_mean_cluster()
-# docs = engin.merge_into_excel("asm.xlsx")
+docs = engin.merge_into_excel("asm.xlsx")

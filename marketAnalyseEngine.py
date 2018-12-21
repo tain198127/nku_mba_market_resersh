@@ -192,8 +192,7 @@ class MarketAnalyseEngine:
                     excels.append(excel_path)
         return excels
 
-    @staticmethod
-    def __writ_into_excel(file_name, person_info_ary, detail_matrix_ary, asm_info_ary, nor_asm_info_ary=None):
+    def __writ_into_excel(self, file_name, person_info_ary, detail_matrix_ary, asm_info_ary, nor_asm_info_ary=None):
         """
         写入excel
         :param file_name: 文件路径
@@ -202,13 +201,31 @@ class MarketAnalyseEngine:
         :param asm_info_ary: 个人的汇总信息数组
         :return: 保存的文件路径
         """
+        rows = numpy.asmatrix(person_info_ary).shape[0]
+        random_name=[]
+        for i in range(0,rows):
+            random_name.append([self.random_name()])
         excel_file = os.path.join(os.path.dirname(os.getcwd()), file_name)
         if os.path.exists(excel_file):
             os.remove(excel_file)
         logging.debug(excel_file)
+        person_info_ary = numpy.hstack((random_name,person_info_ary)).tolist()
+        detail_matrix_tmp = []
+        name_idx = 0;
+        for detail_row in detail_matrix_ary:
+            name_matrix = numpy.zeros((numpy.asmatrix(detail_row).shape[0],1))
+            name_matrix = numpy.full(name_matrix.shape,random_name[name_idx])
+
+            detail_matrix_tmp.append(numpy.hstack((name_matrix,detail_row)).tolist())
+            name_idx = name_idx+1
+        detail_matrix_ary = detail_matrix_tmp
+        asm_info_ary = numpy.hstack((random_name, asm_info_ary)).tolist()
+        if nor_asm_info_ary:
+            nor_asm_info_ary = numpy.hstack((random_name, nor_asm_info_ary)).tolist()
         logging.debug(person_info_ary)
         logging.debug(detail_matrix_ary)
         logging.debug(asm_info_ary)
+        logging.debug(nor_asm_info_ary)
 
         wb = xlsxwriter.Workbook(excel_file, {'strings_to_numbers': True})
         sheet1 = wb.add_worksheet(name="personal info")
@@ -233,7 +250,7 @@ class MarketAnalyseEngine:
         for detail_matrix in detail_matrix_ary:
             for detail_info in detail_matrix:
                 detail_row_num = detail_row_num + 1
-                sheet2.write_row(detail_row_num, 0, detail_info.tolist())
+                sheet2.write_row(detail_row_num, 0, detail_info)
         sheet3 = wb.add_worksheet(name="assembly info")
         sheet3.write_row('A1',
                          ['姓名', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00',
@@ -276,27 +293,17 @@ class MarketAnalyseEngine:
         detail_merge_info = []
         assemb_merge_info = []
         for f in excels:
-            random_name = self.random_name()
+
             personal_info = self.__read_personal_info(f)
             detail_info = self.__read_detail_info(f)
             assemb_info = self.__read_assemble_info(f)
-            # 写入随机姓名
-            personal_info.insert(0, random_name)
-            detail_info = numpy.insert(detail_info, 0, values=random_name, axis=1)
-            assemb_info.insert(0, random_name)
-            # 打印日志
-            logging.debug(personal_info)
-            logging.debug(assemb_info)
-            logging.debug(detail_info)
             personal_merge_info.append(personal_info)
             detail_merge_info.append(detail_info)
             assemb_merge_info.append(assemb_info)
         if is_normalize:
-            personal_info, nor_detail_info, nor_asm_info = self._normalization(personal_merge_info, detail_merge_info,
-                                                                               assemb_merge_info)
-            return personal_merge_info, nor_detail_info, assemb_merge_info, nor_asm_info
+            return self._normalization(personal_merge_info, detail_merge_info,assemb_merge_info)
         else:
-            return personal_merge_info, detail_merge_info, assemb_merge_info,None
+            return personal_merge_info, detail_merge_info, assemb_merge_info
 
     def merge_into_excel(self, file_name, is_normalization=True):
         """
@@ -304,10 +311,11 @@ class MarketAnalyseEngine:
         :return: 合并后的文件地址
         """
 
-        personal_merge_info, detail_merge_info, assemb_merge_info, nor_asm_info = self._get_merge_matrix(
-            is_normalization)
+        personal_merge_info, detail_merge_info, assemb_merge_info = self._get_merge_matrix(
+            False)
+        nor_personal_merge_info, nor_detail_merge_info, nor_assemb_merge_info = self._get_merge_matrix(True)
         merge_file_path = self.__writ_into_excel(file_name, personal_merge_info, detail_merge_info, assemb_merge_info,
-                                                 nor_asm_info)
+                                                 nor_assemb_merge_info)
         return merge_file_path
 
     @staticmethod
@@ -344,25 +352,23 @@ class MarketAnalyseEngine:
         print(asm_matrix)
         minmax = sklearn.preprocessing.MinMaxScaler()
 
-        std_schedule = self._min_max_scale(asm_matrix[:, 1:7].astype(float), 1)
-        std_surrounding = self._min_max_scale(asm_matrix[:, 7:15].astype(float), 1)
-        std_weather = self._min_max_scale(asm_matrix[:, 15: 22].astype(float), 1)
-        std_holiday = self._min_max_scale(asm_matrix[:, 22: 34].astype(float), 1)
-        std_classification = self._min_max_scale(asm_matrix[:, 34:41].astype(float), 1)
+        std_schedule = self._min_max_scale(asm_matrix[:, 0:6].astype(float), 1)
+        std_surrounding = self._min_max_scale(asm_matrix[:, 6:14].astype(float), 1)
+        std_weather = self._min_max_scale(asm_matrix[:, 14: 21].astype(float), 1)
+        std_holiday = self._min_max_scale(asm_matrix[:, 21: 33].astype(float), 1)
+        std_classification = self._min_max_scale(asm_matrix[:, 33:40].astype(float), 1)
 
         asm_matrix = numpy.hstack(
-            (asm_matrix[:, 0:1], std_schedule, std_surrounding, std_weather, std_holiday, std_classification)).tolist()
+            (std_schedule, std_surrounding, std_weather, std_holiday, std_classification)).tolist()
 
         for row in asm:
-            name = numpy.split(row, [1, 7])[0]
-            schedule = numpy.split(row, [1, 7])[1].astype(float)
-            surrounding = numpy.split(row, [7, 15])[1].astype(float)
-            weather = numpy.split(row, [15, 22])[1].astype(float)
-            holiday = numpy.split(row, [22, 34])[1].astype(float)
-            classification = numpy.split(row, [34, 41])[1].astype(float)
+            schedule = numpy.split(row, [0, 6])[1].astype(float)
+            surrounding = numpy.split(row, [6, 14])[1].astype(float)
+            weather = numpy.split(row, [14, 21])[1].astype(float)
+            holiday = numpy.split(row, [21, 33])[1].astype(float)
+            classification = numpy.split(row, [33, 40])[1].astype(float)
             # 先转换为fload
-            nor_row = numpy.hstack((name,
-                                    schedule / numpy.sum(schedule),
+            nor_row = numpy.hstack((schedule / numpy.sum(schedule),
                                     surrounding / numpy.sum(surrounding),
                                     weather / numpy.sum(weather),
                                     holiday / numpy.sum(holiday),
@@ -389,7 +395,8 @@ class MarketAnalyseEngine:
         :excel_path:文件路径
         :return:
         """
-        table = xlrd.open_workbook(excel_path)
+        wb = xlrd.open_workbook(excel_path)
+
 
     def k_mean_cluster(self):
         # todo
@@ -397,9 +404,9 @@ class MarketAnalyseEngine:
         K-MEAN分类
         :return:
         """
-        person, detail, asm,nor_asm = self._get_merge_matrix()
+        person, detail, asm = self._get_merge_matrix()
         # logging.debug(asm)
-        data = numpy.asmatrix(nor_asm)[:, 1:7]
+        data = numpy.asmatrix(asm)[:, 1:7]
         logging.debug(data)
 
         # print(data)
@@ -419,5 +426,5 @@ class MarketAnalyseEngine:
 engin = MarketAnalyseEngine()
 # for i in range(1,100):
 #     print(engin.random_name())
-engin.k_mean_cluster()
-# docs = engin.merge_into_excel("asm.xlsx")
+# engin.k_mean_cluster()
+docs = engin.merge_into_excel("asm.xlsx")

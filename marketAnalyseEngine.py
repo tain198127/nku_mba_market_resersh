@@ -416,13 +416,13 @@ class MarketAnalyseEngine:
 
         return person, nor_detail, asm_matrix
 
-    def k_mean_cluster_pytorch(self, filename='asm.xlsx', demison=2):
+    def k_mean_cluster(self, filename='asm.xlsx', demison=2):
         # todo
         """
         使用pytorch获取聚类
         :return:
         """
-        person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm2.xlsx'))
+        person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), filename))
         # person, detail, asm = self._normalization(person, detail, asm)
         km_cluster = sklearn.cluster.KMeans();
         data = numpy.array(asm).astype(float)[:, 33:40].tolist()
@@ -493,7 +493,7 @@ class MarketAnalyseEngine:
         return numpy.squeeze(numpy.asmatrix(person_info)[1:, 1:]), numpy.squeeze(
             numpy.asmatrix(detail_info)[1:, 1:]), numpy.squeeze(numpy.asmatrix(asm_info)[1:, 1:])
 
-    def k_mean_cluster(self):
+    def k_mean_cluster_pytorch(self):
         # todo
         """
         K-MEAN分类
@@ -539,7 +539,7 @@ engin = MarketAnalyseEngine()
 # print(person)
 # print(detail)
 # print(asm)
-engin.k_mean_cluster_pytorch('asm2.xlsx',2)
+engin.k_mean_cluster('asm.xlsx',2)
 # engin.merge_into_excel("asm2.xlsx")
 # engin.k_mean_cluster()
 # docs = engin.merge_into_excel("asm.xlsx")

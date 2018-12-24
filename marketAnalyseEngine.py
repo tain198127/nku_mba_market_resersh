@@ -9,7 +9,9 @@ import sklearn.preprocessing
 import xlrd
 import xlsxwriter
 from sklearn import cluster
+from pandas import *
 from mpl_toolkits.mplot3d import Axes3D
+
 
 logging.basicConfig(level=logging.INFO)
 family_name = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许',
@@ -363,7 +365,7 @@ class MarketAnalyseEngine:
         else:
             return (matrix - matrix.mean()) / matrix.std()
 
-    def _normalization(self, person, detail, asm):
+    def _normalization(self, person, detail, asm, nor_type=2):
         """
         一般化处理
         :param person: 个人信息矩阵
@@ -384,7 +386,7 @@ class MarketAnalyseEngine:
         print(asm_matrix)
         minmax = sklearn.preprocessing.MinMaxScaler()
 
-        nor_type = 2
+
 
         std_schedule = self._min_max_scale(asm_matrix[:, 0:6].astype(float), nor_type)
         std_surrounding = self._min_max_scale(asm_matrix[:, 6:14].astype(float), nor_type)
@@ -419,11 +421,11 @@ class MarketAnalyseEngine:
     def k_mean_cluster(self, filename='asm.xlsx', demison=2):
         # todo
         """
-        使用pytorch获取聚类
+        使用原始的skylearn做的kmean分类
         :return:
         """
         person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), filename))
-        # person, detail, asm = self._normalization(person, detail, asm)
+        person, detail, asm = self._normalization(person, detail, asm,2)
         km_cluster = sklearn.cluster.KMeans();
         data = numpy.array(asm).astype(float)[:, 33:40].tolist()
         schedule = numpy.array(asm).astype(float)[:, 0:6].tolist()
@@ -435,7 +437,18 @@ class MarketAnalyseEngine:
         print(testdata)
         result = km_cluster.fit_predict(testdata)
 
-        print("predicting result:", len(result), result)
+        print("predicting result:", len(result), ','.join(str(i) for i in  result))
+        df = DataFrame({'schedule': numpy.ravel(schedule_data),'action':numpy.ravel(actiondata), 'weather':numpy.ravel(weather_data), 'group':result})
+        groupdata = df.groupby(df['group'])
+
+        print(groupdata.mean())
+        print(groupdata.count())
+
+
+        # final_result = numpy.hstack((schedule_data, actiondata, weather_data, numpy.reshape(result,(len(result),1))))
+        #
+        # print(final_result)
+
 
 
 
@@ -496,28 +509,9 @@ class MarketAnalyseEngine:
     def k_mean_cluster_pytorch(self):
         # todo
         """
-        K-MEAN分类
+        pytorch做的K-MEAN分类
         :return:
         """
-        # person, detail, asm = self._get_merge_matrix()
-        # person, detail, asm = self._normalization(person, detail, asm)
-        # # logging.debug(asm)
-        # data = numpy.asmatrix(asm)
-        # logging.debug(data)
-        #
-        # # print(data)
-        # for k in range(2, 8):
-        #     numSample = len(asm)
-        #     centroid, label, inertia = cluster.k_means(data, k)
-        #     logging.debug(centroid, label, inertia)
-        #     mark = ['or', 'ob', 'og', 'ok', '^r', '+r', 'sr', 'dr', '<r', 'pr']
-        #     for i in range(numSample):
-        #         plt.plot(data[i][0], data[i][0], mark[label[i]])
-        #     mark = ['Dr', 'Db', 'Dg', 'Dk', '^b', '+b', 'sb', 'db', '<b', 'pb']
-        #     for i in range(k):
-        #         plt.plot(centroid[i][0], centroid[i][1], mark[label[i]], markersize=12)
-        #     plt.show()
-
         person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), 'asm2.xlsx'))
         # person, detail, asm = self._normalization(person, detail, asm)
         km_cluster = sklearn.cluster.KMeans();

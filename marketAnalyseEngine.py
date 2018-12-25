@@ -331,11 +331,34 @@ class MarketAnalyseEngine:
                 personal_info = self.__read_personal_info(f)
                 detail_info = self.__read_detail_info(f)
                 assemb_info = self.__read_assemble_info(f)
+
+                freq = detail_info[:,43:44].astype(float);
+                paymoney = detail_info[:, 44:45].astype(float)
+                endure = detail_info[:, 45:46].astype(float)
+
+                assemb_info.append(numpy.sum(freq))
+                assemb_info.append(numpy.mean(freq))
+                assemb_info.append(numpy.median(freq))
+                assemb_info.append(numpy.var(freq))
+                assemb_info.append(numpy.std(freq))
+
+                assemb_info.append(numpy.sum(paymoney))
+                assemb_info.append(numpy.mean(paymoney))
+                assemb_info.append(numpy.median(paymoney))
+                assemb_info.append(numpy.var(paymoney))
+                assemb_info.append(numpy.std(paymoney))
+
+                assemb_info.append(numpy.sum(endure))
+                assemb_info.append(numpy.mean(endure))
+                assemb_info.append(numpy.median(endure))
+                assemb_info.append(numpy.var(endure))
+                assemb_info.append(numpy.std(endure))
+
                 personal_merge_info.append(personal_info)
                 detail_merge_info.append(detail_info)
                 assemb_merge_info.append(assemb_info)
             except Exception as e:
-                print(e)
+                print(e,personal_info)
 
         if is_normalize:
             return self._normalization(personal_merge_info, detail_merge_info, assemb_merge_info)
@@ -393,9 +416,10 @@ class MarketAnalyseEngine:
         std_weather = self._min_max_scale(asm_matrix[:, 14: 21].astype(float), nor_type)
         std_holiday = self._min_max_scale(asm_matrix[:, 21: 33].astype(float), nor_type)
         std_classification = self._min_max_scale(asm_matrix[:, 33:40].astype(float), nor_type)
+        std_tail = asm_matrix[:, 40:].astype(float)
 
         asm_matrix = numpy.hstack(
-            (std_schedule, std_surrounding, std_weather, std_holiday, std_classification)).tolist()
+            (std_schedule, std_surrounding, std_weather, std_holiday, std_classification,std_tail)).tolist()
 
         for row in numpy.asarray(asm):
             schedule = numpy.split(row, [0, 6])[1].astype(float)
@@ -403,12 +427,16 @@ class MarketAnalyseEngine:
             weather = numpy.split(row, [14, 21])[1].astype(float)
             holiday = numpy.split(row, [21, 33])[1].astype(float)
             classification = numpy.split(row, [33, 40])[1].astype(float)
+            tail = row[40:].astype(float)
             # 先转换为fload
             nor_row = numpy.hstack((schedule / numpy.sum(schedule),
                                     surrounding / numpy.sum(surrounding),
                                     weather / numpy.sum(weather),
                                     holiday / numpy.sum(holiday),
-                                    classification / numpy.sum(classification))
+                                    classification / numpy.sum(classification),
+                                    tail
+                                    )
+
                                    )
             # numpy实现，百分比化
             nor_asm.append(nor_row.tolist())
@@ -425,20 +453,27 @@ class MarketAnalyseEngine:
         :return:
         """
         person, detail, asm = self.read_asm_2_matrix(os.path.join(os.path.dirname(os.getcwd()), filename))
+
         person, detail, asm = self._normalization(person, detail, asm,2)
-        km_cluster = sklearn.cluster.KMeans();
+
+        km_cluster = sklearn.cluster.KMeans(n_clusters=4)
+
         data = numpy.array(asm).astype(float)[:, 33:40].tolist()
         schedule = numpy.array(asm).astype(float)[:, 0:6].tolist()
-        weather = numpy.array(asm).astype(float)[:, 6:14].tolist()
+        location = numpy.array(asm).astype(float)[:, 6:14].tolist()
+        holiday = numpy.array(asm).astype(float)[:,21:33].tolist()
+
         actiondata = self.matrix_shirk(data)
         schedule_data = self.matrix_shirk(schedule)
-        weather_data = self.matrix_shirk(weather)
-        testdata = numpy.hstack((schedule_data, actiondata, weather_data))
+        location_data = self.matrix_shirk(location)
+        holiday_data = self.matrix_shirk(holiday)
+        # testdata = numpy.hstack((schedule_data, actiondata, location_data,holiday_data))
+        testdata = numpy.hstack((schedule_data, actiondata,location_data))
         print(testdata)
-        result = km_cluster.fit_predict(testdata)
+        result = km_cluster.fit_predict(km_cluster.fit_transform(testdata))
 
         print("predicting result:", len(result), ','.join(str(i) for i in  result))
-        df = DataFrame({'schedule': numpy.ravel(schedule_data),'action':numpy.ravel(actiondata), 'weather':numpy.ravel(weather_data), 'group':result})
+        df = DataFrame({'schedule': numpy.ravel(schedule_data),'action':numpy.ravel(actiondata), 'location':numpy.ravel(location_data),'holiday':numpy.ravel(holiday_data), 'group':result})
         groupdata = df.groupby(df['group'])
 
         print(groupdata.mean())
@@ -453,11 +488,34 @@ class MarketAnalyseEngine:
 
 
         if demison == 2:
-            plt.scatter(testdata[:, 0], testdata[:, 1], c=result)
+            # 作息VSapp类型
+            plt.scatter(testdata[:, 0], testdata[:, 1], c=result,marker='+')
+            plt.title('schedule VS.apptype')
+            plt.show()
+            # # 作息VS地点
+            # plt.scatter(testdata[:, 0], testdata[:, 2], c=result)
+            # plt.title('schedule VS.location')
+            # plt.show()
+            # # 作息VS节假日
+            # plt.scatter(testdata[:, 0], testdata[:, 3], c=result)
+            # plt.title('schedule VS.holiday')
+            # plt.show()
+            # # app类型vs地点
+            # plt.scatter(testdata[:, 1], testdata[:, 2], c=result)
+            # plt.title('apptype VS.location')
+            # plt.show()
+            # # app类型vs节假日
+            # plt.scatter(testdata[:, 1], testdata[:, 3], c=result)
+            # plt.title('apptype VS. holiday')
+            # plt.show()
+            # # 地点vs节假日
+            # plt.scatter(testdata[:, 2], testdata[:, 3], c=result)
+            # plt.title('location VS. holiday')
+            # plt.show()
         elif demison == 3:
             fig = plt.figure()  # 定义新的三维坐标轴
             ax3 = plt.axes(projection='3d')
-            plt.scatter(testdata[:, 0], testdata[:, 1],testdata[:, 2], c=result)
+            plt.scatter(testdata[:, 0], testdata[:, 1],testdata[:, 2], c=result,marker="+")
         # elif demison == 4:
         #     ax3.plot_surface(testdata[:, 0], testdata[:, 1],testdata[:, 2],rstride = 1, cstride = 1, cmap='rainbow')
             # 作图
@@ -533,7 +591,7 @@ engin = MarketAnalyseEngine()
 # print(person)
 # print(detail)
 # print(asm)
-engin.k_mean_cluster('asm.xlsx',2)
-# engin.merge_into_excel("asm2.xlsx")
+# engin.k_mean_cluster('asm.xlsx',2)
+engin.merge_into_excel("asm3.xlsx")
 # engin.k_mean_cluster()
 # docs = engin.merge_into_excel("asm.xlsx")

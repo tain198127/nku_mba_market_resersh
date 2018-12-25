@@ -267,6 +267,11 @@ class MarketAnalyseEngine:
                 detail_row_num = detail_row_num + 1
                 sheet2.write_row(detail_row_num, 0, detail_info)
         sheet3 = wb.add_worksheet(name="assembly info")
+        # assemb_info.append(numpy.sum(freq))
+        # assemb_info.append(numpy.mean(freq))
+        # assemb_info.append(numpy.median(freq))
+        # assemb_info.append(numpy.var(freq))
+        # assemb_info.append(numpy.std(freq))
         sheet3.write_row('A1',
                          ['姓名', '6:00~9:00', '9:00~12:00', '12:00~14:00', '14:00~19:00', '19:00~23:00', '23:00~6:00',
                           '在家',
@@ -275,7 +280,11 @@ class MarketAnalyseEngine:
                           '工作日',
                           '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节', '	元旦',
                           '	圣诞节',
-                          '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
+                          '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	',
+                          '使用频率总数','使用频率均值','使用频率中位数','使用频率方差','使用频率标准差',
+                          '付款总额', '付款均值', '付款中位数', '付款方差', '付款标准差',
+                          '使用时间总数', '使用时间均值', '使用时间中位数', '使用时间方差', '使用时间标准差',
+                          ])
         for row_num, asm_info in enumerate(asm_info_ary):
             sheet3.write_row(row_num + 1, 0, asm_info)
 
@@ -310,7 +319,11 @@ class MarketAnalyseEngine:
                           '	周末', '	春节', '	国庆节', '	劳动节', '	清明	', '端午', '	情人节', '	中秋节',
                           '	元旦',
                           '	圣诞节',
-                          '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	'])
+                          '	万圣节', '	体育', '	娱乐', '	旅游', '	房产', '	汽车	', '美食', '	理财	',
+                          '使用频率总数', '使用频率均值', '使用频率中位数', '使用频率方差', '使用频率标准差',
+                          '付款总额', '付款均值', '付款中位数', '付款方差', '付款标准差',
+                          '使用时间总数', '使用时间均值', '使用时间中位数', '使用时间方差', '使用时间标准差',
+                          ])
         for row_num, asm_info in enumerate(nor_asm_info_ary):
             sheet5.write_row(row_num + 1, 0, asm_info)
         wb.close()

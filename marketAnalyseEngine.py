@@ -475,6 +475,7 @@ class MarketAnalyseEngine:
         schedule = numpy.array(asm).astype(float)[:, 0:6].tolist()
         location = numpy.array(asm).astype(float)[:, 6:14].tolist()
         holiday = numpy.array(asm).astype(float)[:,21:33].tolist()
+        tail = numpy.array(asm).astype(float)[:,40:].tolist()
 
         actiondata = self.matrix_shirk(data)
         schedule_data = self.matrix_shirk(schedule)
@@ -525,6 +526,7 @@ class MarketAnalyseEngine:
             # plt.scatter(testdata[:, 2], testdata[:, 3], c=result)
             # plt.title('location VS. holiday')
             # plt.show()
+
         elif demison == 3:
             fig = plt.figure()  # 定义新的三维坐标轴
             ax3 = plt.axes(projection='3d')
@@ -605,6 +607,10 @@ engin = MarketAnalyseEngine()
 # print(detail)
 # print(asm)
 # engin.k_mean_cluster('asm.xlsx',2)
-engin.merge_into_excel("asm3.xlsx")
+
+engin.k_mean_cluster('asm3.xlsx',2)
+
+# engin.merge_into_excel("asm3.xlsx")
+
 # engin.k_mean_cluster()
 # docs = engin.merge_into_excel("asm.xlsx")
